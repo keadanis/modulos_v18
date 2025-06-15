@@ -1,0 +1,5 @@
+# file: ~/.gitignore_global
+__pycache__/
+.DS_Store
+.idea/*
+sftp-config.json
