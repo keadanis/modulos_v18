@@ -5,7 +5,7 @@ from odoo import models, fields
 
 class CommandCommand(models.Model):
     _name = "server.command"
-    _description = "command"
+    _description = "Server Command"
     _order = "sequence"
 
     sequence = fields.Integer(

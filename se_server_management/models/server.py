@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 
 class ServerServer(models.Model):
     _name = "server.server"
-    _description = "server"
+    _description = "Server Management"  # Cambiado: Descripción más completa (requerido Odoo 18)
     _order = "sequence"
     _inherit = "server.util"
 
@@ -27,6 +27,7 @@ class ServerServer(models.Model):
         ("cancel", "Cancel"),
     ]
 
+    # Todos los campos se mantienen EXACTAMENTE igual
     sequence = fields.Integer("Sequence", default=10)
     name = fields.Char(string="Name", required=True)
     ip_address = fields.Char(string="IP Address", readonly=True)
@@ -66,7 +67,6 @@ class ServerServer(models.Model):
     key_filename = fields.Text(
         readonly=True,
         states={"draft": [("readonly", False)]},
-        # required=True,
         help="This file must be owned by adhoc-server and with 400 perm.\n"
              "To do that, run:\n"
              "* sudo chown syslog.netdev [file path]\n"
@@ -112,9 +112,7 @@ class ServerServer(models.Model):
     ram_consumption_gib = fields.Float()
     ram_consumption_percent = fields.Float()
 
-    disk_capacity = fields.Float(
-        "Disk Total",
-    )
+    disk_capacity = fields.Float("Disk Total")
     disk_available = fields.Float()
     disk_consumption = fields.Float()
     disk_percentage = fields.Float()
@@ -166,16 +164,8 @@ class ServerServer(models.Model):
                         ram_capacity = float(general_inf["memory_total"][0])
                         ram_available = float(general_inf["memory_total_free"][0])
                         ram_consumption = ram_capacity - ram_available
-                        cpu_count = float(
-                            general_inf["cpu_no"][0].split(": ")[1].split("\n")[0]
-                        )
-                        storage_info = [
-                            x
-                            for x in filter(
-                                lambda x: x != "",
-                                general_inf["storage_info"][-1].strip().split(" "),
-                            )
-                        ]
+                        cpu_count = float(general_inf["cpu_no"][0].split(": ")[1].split("\n")[0])
+                        storage_info = [x for x in filter(lambda x: x != "", general_inf["storage_info"][-1].strip().split(" "))]
                         disk_capacity = float(storage_info[0].split("G")[0])
                         disk_consumption = float(storage_info[1].split("G")[0])
                         disk_available = float(storage_info[2].split("G")[0])
@@ -183,62 +173,45 @@ class ServerServer(models.Model):
 
                         # Average of cpu load_averages divided by number of CPUs (?)
 
-                        server.write(
-                            {
-                                "ram_capacity": ram_capacity,
-                                "ram_capacity_gib": ram_capacity / 1024 / 1024,
-                                "ram_available": ram_available,
-                                "ram_available_gib": ram_available / 1024 / 1024,
-                                "ram_consumption": ram_consumption,
-                                "ram_consumption_gib": ram_consumption / 1024 / 1024,
-                                "ram_consumption_percent": ram_consumption
-                                                           * 100
-                                                           / ram_capacity
-                                if ram_capacity
-                                else 0.0,
-                                "cpu_number": int(cpu_count),
-                                "disk_capacity": disk_capacity,
-                                "disk_consumption": disk_consumption
-                                if disk_consumption
-                                else 0.0,
-                                "disk_available": disk_available
-                                if disk_available
-                                else 0.0,
-                                "cpu_load_1": float(cpu_load[0]),
-                                "cpu_load_5": float(cpu_load[1]),
-                                "cpu_load_15": float(cpu_load[2]),
-                                "cpu_load_percent": (float(cpu_load[0]) / cpu_count)
-                                                    * 100,
-                                "disk_percentage": disk_consumption
-                                                   * 100
-                                                   / disk_capacity
-                                if disk_capacity
-                                else 0.0,
-                                "host_offline": False,
-                            }
-                        )
+                        server.write({
+                            "ram_capacity": ram_capacity,
+                            "ram_capacity_gib": ram_capacity / 1024 / 1024,
+                            "ram_available": ram_available,
+                            "ram_available_gib": ram_available / 1024 / 1024,
+                            "ram_consumption": ram_consumption,
+                            "ram_consumption_gib": ram_consumption / 1024 / 1024,
+                            "ram_consumption_percent": ram_consumption * 100 / ram_capacity if ram_capacity else 0.0,
+                            "cpu_number": int(cpu_count),
+                            "disk_capacity": disk_capacity,
+                            "disk_consumption": disk_consumption if disk_consumption else 0.0,
+                            "disk_available": disk_available if disk_available else 0.0,
+                            "cpu_load_1": float(cpu_load[0]),
+                            "cpu_load_5": float(cpu_load[1]),
+                            "cpu_load_15": float(cpu_load[2]),
+                            "cpu_load_percent": (float(cpu_load[0]) / cpu_count) * 100,
+                            "disk_percentage": disk_consumption * 100 / disk_capacity if disk_capacity else 0.0,
+                            "host_offline": False,
+                        })
                     else:
-                        server.write(
-                            {
-                                "ram_capacity": 0,
-                                "ram_capacity_gib": 0,
-                                "ram_available": 0,
-                                "ram_available_gib": 0,
-                                "ram_consumption": 0,
-                                "ram_consumption_gib": 0,
-                                "ram_consumption_percent": 0,
-                                "cpu_number": 0,
-                                "disk_capacity": 0,
-                                "disk_consumption": 0,
-                                "disk_available": 0,
-                                "cpu_load_1": 0,
-                                "cpu_load_5": 0,
-                                "cpu_load_15": 0,
-                                "cpu_load_percent": 0,
-                                "disk_percentage": 0,
-                                "host_offline": True,
-                            }
-                        )
+                        server.write({
+                            "ram_capacity": 0,
+                            "ram_capacity_gib": 0,
+                            "ram_available": 0,
+                            "ram_available_gib": 0,
+                            "ram_consumption": 0,
+                            "ram_consumption_gib": 0,
+                            "ram_consumption_percent": 0,
+                            "cpu_number": 0,
+                            "disk_capacity": 0,
+                            "disk_consumption": 0,
+                            "disk_available": 0,
+                            "cpu_load_1": 0,
+                            "cpu_load_5": 0,
+                            "cpu_load_15": 0,
+                            "cpu_load_percent": 0,
+                            "disk_percentage": 0,
+                            "host_offline": True,
+                        })
 
                 except Exception as e:
                     # Manejar cualquier excepción y continuar con el siguiente servidor
@@ -264,12 +237,9 @@ class ServerServer(models.Model):
             record.color = color
 
     def get_data_and_activate(self):
-        """Check server data"""
         self._compute_system_resources()
         if self.host_offline:
-            raise UserError(
-                "Couldn't reach the server, please check the settings and try again."
-            )
+            raise UserError("Couldn't reach the server, please check the settings and try again.")
         self.write({"state": "active"})
 
     def action_test_connection(self):
@@ -305,7 +275,6 @@ class ServerServer(models.Model):
         self.write({"state": "inactive"})
 
     def check_to_inactive(self):
-
         return True
 
     @api.model
@@ -317,9 +286,7 @@ class ServerServer(models.Model):
     def custom_sudo(self, command):
         if not self.is_remote:
             try:
-                res = subprocess.check_output(
-                    command, stderr=subprocess.STDOUT, shell=True
-                )
+                res = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
                 self.actualizar_log(str(res))
                 return True
             except Exception as e:
@@ -341,9 +308,7 @@ class ServerServer(models.Model):
                     _logger.exception("%s" % error)
                     return False
 
-                ssh_stdin, ssh_stdout, ssh_stderr = ssh_obj.exec_command(
-                    "sudo " + command
-                )
+                ssh_stdin, ssh_stdout, ssh_stderr = ssh_obj.exec_command("sudo " + command)
                 result = ssh_stdout.readlines()
                 self.actualizar_log(str(result))
                 return True
@@ -371,15 +336,11 @@ class ServerServer(models.Model):
 
     def store_keys_to_file_path(self):
         try:
-            path = self.env["ir.config_parameter"].get_param(
-                "se_server_management.ssh_key_store_path"
-            )
+            path = self.env["ir.config_parameter"].get_param("se_server_management.ssh_key_store_path")
             if not os.path.isdir(path):
                 os.makedirs(path)
         except:
-            raise UserError(
-                _("Please configure the ssh key store path in the settings")
-            )
+            raise UserError(_("Please configure the ssh key store path in the settings"))
 
     def create_remote_file(self, remote_path, content):
         try:
@@ -407,25 +368,22 @@ class ServerServer(models.Model):
             _logger.info("Error al iniciar el servicio wssh: %r", e)
             raise UserError(_("Error iniciando el servicio wssh: %r") % e)
 
-        path = self.env["ir.config_parameter"].get_param(
-            "se_server_management.ssh_key_store_path"
-        )
+        path = self.env["ir.config_parameter"].get_param("se_server_management.ssh_key_store_path")
         private_keyfile = os.path.join(path, self.name)
         private_key = False
         with open(private_keyfile, 'rb') as file:
             private_key = file.read()
 
         # Obtén los datos de conexión desde el registro actual de server.server
-        webssh_url = self.env["ir.config_parameter"].get_param(
-            "se_server_management.webssh_url"
-        ) + "/?"
+        webssh_url = self.env["ir.config_parameter"].get_param("se_server_management.webssh_url") + "/?"
+
         # enviar en el parametro privatekey el archivo de la clave privada
         connection_data = {
             'hostname': self.main_hostname,
             'port': str(self.ssh_port),
             'username': self.user_name,
             'password': self.ssh_password,
-            'allow_agent': False,  # Add this line to disable using SSH agent
+            'allow_agent': False,
         }
         # Comprueba si se proporciona una clave privada y, en caso afirmativo, agrégala a los datos de conexión.
         for key, value in connection_data.items():
@@ -435,5 +393,5 @@ class ServerServer(models.Model):
         return {
             'type': 'ir.actions.act_url',
             'url': webssh_url,
-            'target': 'self',  # Abre la URL en la misma ventana.
+            'target': 'self',
         }

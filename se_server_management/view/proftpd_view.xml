@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
+<odoo noupdate="1">
     <record id="proftpd_user_view_form" model="ir.ui.view">
         <field name="name">proftpd.user.view.form</field>
         <field name="model">proftpd.user</field>
         <field name="arch" type="xml">
-            <form string="FTP Configuracion">
+            <form string="FTP Configuración">
                 <sheet>
-                    <group string="FTP Configuracion">
-                        <field name="name"/>
-                        <label for="password"/>
-                        <div>
-                            <field name="password" password="True" class="oe_inline"/>
-                            <button name="show_passwd" string="⇒ View Password" type="object" class="oe_link"/>
+                    <div class="oe_title">
+                        <h1><field name="name" class="mb-3"/></h1>
+                    </div>
+                    <group string="FTP Configuración">
+                        <field name="name" string="Usuario" class="mb-3"/>
+                        <div class="mb-3">
+                            <label for="password" string="Contraseña"/>
+                            <div class="d-flex align-items-center">
+                                <field
+                                    name="password"
+                                    password="True"
+                                    class="me-2"
+                                    placeholder="Ingrese la contraseña FTP"
+                                />
+                                <button
+                                    name="show_passwd"
+                                    string="Mostrar Contraseña"
+                                    type="object"
+                                    class="btn btn-link"
+                                />
+                            </div>
                         </div>
-                        <field name="homedir" />
+                        <field name="homedir" string="Directorio Principal" class="mb-3"/>
                     </group>
                 </sheet>
             </form>

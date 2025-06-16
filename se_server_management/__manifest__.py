@@ -1,11 +1,15 @@
 {
-    'name': 'Server Management',
+    'name': "SE Server Management",
     'version': '18.0.1.0.0',
-    'category': 'Tools',
-    'summary': 'Manage servers and connections',
-    'depends': ['base'],  # Revisa si necesitas más dependencias
-    'author': 'Tu Nombre',
+    'author': "Keadanis",
+    'website': "https://github.com/keadanis/modulos_v18",
+    'category': 'Technical',
     'license': 'LGPL-3',
+    'depends': ['base'],
+    'data': [
+        'security/ir.model.access.csv',
+        'views/se_server_management_views.xml',
+    ],
     'installable': True,
-    'application': True,
+    'application': False,
 }

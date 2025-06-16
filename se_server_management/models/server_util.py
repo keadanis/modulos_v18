@@ -7,13 +7,10 @@ from odoo.exceptions import UserError, ValidationError
 
 try:
     import paramiko
-
     subprocess.check_call([sys.executable, "-m", "pip", "install", "webssh"])
 except Exception:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "poetry"]
-    )
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "poetry"])
     subprocess.check_call([sys.executable, "-m", "pip", "install", "paramiko"])
     subprocess.check_call([sys.executable, "-m", "pip", "install", "webssh"])
 from odoo import _, models
@@ -185,7 +182,7 @@ class ServerUtil(models.AbstractModel):
         pkey = False
         if not os.path.isfile(
                 os.path.expanduser(path + name + ".pub")
-        ):  # in case of a new client without id_rsa.pub we'll try to create it
+        ): # in case of a new client without id_rsa.pub we'll try to create it
             try:
                 _logger.info("No id_rsa.pub was found on client, creating a new one")
                 key = paramiko.RSAKey.generate(1024)
