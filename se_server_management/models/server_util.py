@@ -1,24 +1,31 @@
 # -*- coding: utf-8 -*-
-import subprocess
 import sys
-from io import StringIO
-
-from odoo.exceptions import UserError, ValidationError
-
-try:
-    import paramiko
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "webssh"])
-except Exception:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "poetry"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "paramiko"])
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "webssh"])
-from odoo import _, models
 import logging
 import os
+import subprocess
+from io import StringIO
+from odoo import _, models
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
+# Verificación de dependencias al importar
+try:
+    import paramiko
+    import webssh
+except ImportError as e:
+    error_msg = f"""
+    Dependencias faltantes: {str(e)}
+
+    Para solucionar esto en Docker:
+    1. Reconstruye tu imagen incluyendo:
+       RUN pip install --break-system-packages paramiko webssh
+
+    2. O ejecuta manualmente en el contenedor:
+       docker exec -it <nombre_contenedor> pip install --break-system-packages paramiko webssh
+    """
+    _logger.error(error_msg)
+    raise ImportError(error_msg) from None
 
 class ServerUtil(models.AbstractModel):
     _name = "server.util"
