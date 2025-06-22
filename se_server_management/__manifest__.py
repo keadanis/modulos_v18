@@ -7,9 +7,14 @@
     'license': 'LGPL-3',
     'depends': ['base'],
     'data': [
-        'security/ir.model.access.csv',
-        'views/se_server_management_views.xml',
+        "security/ir.model.access.csv",
+        "view/command_view.xml",
+        "view/server_view.xml",
+        "wizard/se_ssh_auth_view.xml",
+        "data/ir_parameters.xml",
+        "data/data.xml",
     ],
     'installable': True,
     'application': False,
+    "images": ['static/description/server.png'],
 }
