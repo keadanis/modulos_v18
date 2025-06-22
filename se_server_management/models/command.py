@@ -6,12 +6,13 @@ from odoo import models, fields, api
 class CommandCommand(models.Model):
     _name = "server.command"
     _description = "Server Command"
-    _order = "sequence, name"  # Ordenamiento mejorado
+    _order = "sequence, id"  # Ordenamiento más robusto
 
     sequence = fields.Integer(
         string="Sequence",
         default=10,
-        index=True  # Mejora el rendimiento para el drag-and-drop
+        index=True,
+        help="Drag and drop to reorder"
     )
     name = fields.Char(
         string="Name",

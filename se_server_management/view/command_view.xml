@@ -1,51 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- infrastructure.command -->
-<odoo noupdate="1">
-    <data>
+<odoo>
+    <data noupdate="1">
 
-        <!-- SEARCH VIEW -->
-        <record id="view_server_command_filter" model="ir.ui.view">
-            <field name="name">server.command.select</field>
+        <!-- Tree View - Estructura simplificada -->
+        <record id="view_server_command_tree" model="ir.ui.view">
+            <field name="name">server.command.tree</field>
             <field name="model">server.command</field>
             <field name="arch" type="xml">
-                <search string="command">
+                <tree>
+                    <field name="sequence"/>
                     <field name="name"/>
                     <field name="command"/>
-                </search>
+                </tree>
             </field>
         </record>
 
-        <!-- FORMVIEW -->
+        <!-- Form View -->
         <record id="view_server_command_form" model="ir.ui.view">
             <field name="name">server.command.form</field>
             <field name="model">server.command</field>
             <field name="arch" type="xml">
-                <form string="command">
+                <form>
                     <sheet>
-                        <div class="oe_title">
-                            <h1>
-                                <field name="name" class="mb-2"/>
-                            </h1>
-                        </div>
                         <group>
-                            <field name="name" string="Nombre" class="mb-3"/>
-                            <field name="command" string="Comando" class="mb-3" placeholder="Ejemplo: sudo service apache2 restart"/>
+                            <field name="sequence"/>
+                            <field name="name"/>
+                            <field name="command"/>
+                            <field name="server_id"/>
                         </group>
                     </sheet>
                 </form>
             </field>
         </record>
 
-        <!-- TREEVIEW CORREGIDA -->
-        <record id="view_server_command_tree" model="ir.ui.view">
-            <field name="name">server.command.tree</field>
+        <!-- Search View -->
+        <record id="view_server_command_filter" model="ir.ui.view">
+            <field name="name">server.command.search</field>
             <field name="model">server.command</field>
             <field name="arch" type="xml">
-                <tree>
-                    <field name="sequence" widget="handle"/>
+                <search>
                     <field name="name"/>
                     <field name="command"/>
-                </tree>
+                    <field name="server_id"/>
+                </search>
             </field>
         </record>
 
