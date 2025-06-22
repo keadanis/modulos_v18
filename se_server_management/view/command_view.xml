@@ -15,7 +15,7 @@
             </field>
         </record>
 
-        <!-- FORMVIEW (Mejorado con estructura moderna) -->
+        <!-- FORMVIEW -->
         <record id="view_server_command_form" model="ir.ui.view">
             <field name="name">server.command.form</field>
             <field name="model">server.command</field>
@@ -36,13 +36,12 @@
             </field>
         </record>
 
-        <!-- TREEVIEW -->
+        <!-- TREEVIEW CORREGIDA -->
         <record id="view_server_command_tree" model="ir.ui.view">
             <field name="name">server.command.tree</field>
             <field name="model">server.command</field>
-            <field name="type">tree</field>
             <field name="arch" type="xml">
-                <tree string="command">
+                <tree>
                     <field name="sequence" widget="handle"/>
                     <field name="name"/>
                     <field name="command"/>
