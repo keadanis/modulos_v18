@@ -37,6 +37,7 @@
         <record id="view_server_command_tree" model="ir.ui.view">
             <field name="name">server.command.tree</field>
             <field name="model">server.command</field>
+            <field name="type">tree</field>  <!-- ¡Esta línea es crucial! -->
             <field name="arch" type="xml">
                 <tree>
                     <field name="sequence" widget="handle"/>
