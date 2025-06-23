@@ -38,7 +38,7 @@
             <field name="name">server.command.tree</field>
             <field name="model">server.command</field>
             <field name="arch" type="xml">
-                <tree string="command">
+                <tree>
                     <field name="sequence" widget="handle"/>
                     <field name="name"/>
                     <field name="command"/>

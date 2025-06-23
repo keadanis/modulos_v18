@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
+from odoo import models, fields, api
 
-from odoo import models, fields
-
-
-class CommandCommand(models.Model):
+class ServerCommand(models.Model):
     _name = "server.command"
-    _description = "command"
+    _description = "Server Command"
     _order = "sequence"
 
     sequence = fields.Integer(
@@ -14,7 +12,6 @@ class CommandCommand(models.Model):
     )
     name = fields.Char(string="Name", required=True)
     command = fields.Text(string="Command", required=True)
-
     server_id = fields.Many2one(comodel_name="server.server", string="Server")
 
     def action_ejecutar(self):
