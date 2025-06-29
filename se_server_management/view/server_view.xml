@@ -127,6 +127,32 @@
                                 <field name="ssh_password" password="True" string="SSH Key Passphrase"/>
                                 <field name="ssh_public_key" readonly="1"/>
                             </page>
+                            <page string="Master Key" groups="base.group_system">
+                                <group>
+                                    <field name="use_master_key"/>
+                                    <field name="master_key_path"
+                                           attrs="{'invisible': [('use_master_key','=',False)]}"
+                                           help="Ruta absoluta en el contenedor Docker (ej: /home/odoo/.ssh/prod04)"/>
+                                    <field name="master_key_installed" readonly="1"/>
+
+                                    <group>
+                                        <button name="install_master_key"
+                                                string="Instalar Clave en Servidor"
+                                                type="object"
+                                                class="oe_highlight"
+                                                attrs="{'invisible': ['|', ('master_key_installed','=',True), ('use_master_key','=',False)]}"/>
+                                        <button name="action_test_master_key"
+                                                string="Probar Conexión con Clave"
+                                                type="object"
+                                                attrs="{'invisible': [('use_master_key','=',False)]}"/>
+                                        <button name="action_configure_master_key"
+                                                string="Configurar Ruta"
+                                                type="object"
+                                                class="oe_link"
+                                                attrs="{'invisible': [('use_master_key','=',False)]}"/>
+                                    </group>
+                                </group>
+                            </page>
                         </notebook>
                        <notebook>
                         <page string="Logs">

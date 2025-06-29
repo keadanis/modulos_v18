@@ -1,0 +1,28 @@
+<odoo>
+    <data>
+        <record id="view_master_key_config_form" model="ir.ui.view">
+            <field name="name">server.master.key.config.form</field>
+            <field name="model">server.master.key.config</field>
+            <field name="arch" type="xml">
+                <form string="Configurar Clave Maestra">
+                    <sheet>
+                        <group>
+                            <field name="master_key_path"/>
+                            <field name="server_id" invisible="1"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_save_config" string="Guardar" type="object" class="oe_highlight"/>
+                        <button string="Cancelar" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <act_window id="action_master_key_config"
+                    name="Configurar Clave Maestra"
+                    res_model="server.master.key.config"
+                    view_mode="form"
+                    target="new"/>
+    </data>
+</odoo>

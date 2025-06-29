@@ -5,11 +5,14 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
+from io import StringIO
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 from odoo.modules.module import get_module_resource
 from odoo.tools import config
+
+import paramiko
 
 _logger = logging.getLogger(__name__)
 
@@ -85,47 +88,53 @@ class ServerServer(models.Model):
         states={"draft": [("readonly", False)]},
         help="Partner that you should contact related to server service.",
     )
-
     note = fields.Html(string="Note")
-
     color = fields.Integer(string="Color Index", compute="get_color")
     state = fields.Selection(_states_, string="State", default="draft")
     command_ids = fields.One2many(
         comodel_name="server.command", string="Commands", inverse_name="server_id"
     )
-
     is_remote = fields.Boolean(string="Remoto", default=True)
     # The Python function socket.gethostname() returns the host name of the current system under which the Python interpreter is executed.
     host_name = fields.Char(default=socket.gethostname())
     ssh_private_key = fields.Text()
     ssh_password = fields.Char()
     ssh_public_key = fields.Text()
-
     host_offline = fields.Boolean()
-
     ram_capacity = fields.Float()
     ram_available = fields.Float()
     ram_consumption = fields.Float()
-
     ram_capacity_gib = fields.Float()
     ram_available_gib = fields.Float()
     ram_consumption_gib = fields.Float()
     ram_consumption_percent = fields.Float()
-
-    disk_capacity = fields.Float(
-        "Disk Total",
-    )
+    disk_capacity = fields.Float("Disk Total")
     disk_available = fields.Float()
     disk_consumption = fields.Float()
     disk_percentage = fields.Float()
-
     cpu_load_1 = fields.Float()
     cpu_load_5 = fields.Float()
     cpu_load_15 = fields.Float()
     cpu_load_percent = fields.Float()
     cpu_number = fields.Integer()
-
     log = fields.Html(string='Log')
+
+    # Nuevos campos para clave maestra
+    use_master_key = fields.Boolean(
+        string="Usar clave maestra",
+        default=True,
+        help="Usar la clave SSH configurada en el servidor manager"
+    )
+    master_key_path = fields.Char(
+        string="Ruta de clave privada maestra",
+        default="/home/odoo/.ssh/secure_key",
+        help="Ruta absoluta a la clave SSH privada en el contenedor"
+    )
+    master_key_installed = fields.Boolean(
+        string="Clave instalada en servidor",
+        readonly=True,
+        help="Indica si la clave maestra fue instalada en este servidor"
+    )
 
     def actualizar_log(self, message):
         """Agrega un mensaje al registro (log) y lo limpia si supera 1000 caracteres."""
@@ -161,6 +170,19 @@ class ServerServer(models.Model):
                         "sshkey": server.ssh_private_key,
                         "passkey": server.ssh_password,
                     }
+
+                    if server.use_master_key:
+                        try:
+                            private_key = paramiko.RSAKey.from_private_key_file(
+                                server.master_key_path or '/home/odoo/.ssh/secure_key'
+                            )
+                            context['pkey'] = private_key
+                            context.pop('sshkey', None)
+                            context.pop('passkey', None)
+                        except Exception as e:
+                            _logger.error("Error loading master key: %s", str(e))
+                            continue
+
                     general_inf = server.get_general_info(server.is_remote, context)
                     if general_inf:
                         ram_capacity = float(general_inf["memory_total"][0])
@@ -180,7 +202,6 @@ class ServerServer(models.Model):
                         disk_consumption = float(storage_info[1].split("G")[0])
                         disk_available = float(storage_info[2].split("G")[0])
                         cpu_load = general_inf["cpu_load"][0].split(" ")
-
                         # Average of cpu load_averages divided by number of CPUs (?)
 
                         server.write(
@@ -191,29 +212,16 @@ class ServerServer(models.Model):
                                 "ram_available_gib": ram_available / 1024 / 1024,
                                 "ram_consumption": ram_consumption,
                                 "ram_consumption_gib": ram_consumption / 1024 / 1024,
-                                "ram_consumption_percent": ram_consumption
-                                                           * 100
-                                                           / ram_capacity
-                                if ram_capacity
-                                else 0.0,
+                                "ram_consumption_percent": ram_consumption * 100 / ram_capacity if ram_capacity else 0.0,
                                 "cpu_number": int(cpu_count),
                                 "disk_capacity": disk_capacity,
-                                "disk_consumption": disk_consumption
-                                if disk_consumption
-                                else 0.0,
-                                "disk_available": disk_available
-                                if disk_available
-                                else 0.0,
+                                "disk_consumption": disk_consumption if disk_consumption else 0.0,
+                                "disk_available": disk_available if disk_available else 0.0,
                                 "cpu_load_1": float(cpu_load[0]),
                                 "cpu_load_5": float(cpu_load[1]),
                                 "cpu_load_15": float(cpu_load[2]),
-                                "cpu_load_percent": (float(cpu_load[0]) / cpu_count)
-                                                    * 100,
-                                "disk_percentage": disk_consumption
-                                                   * 100
-                                                   / disk_capacity
-                                if disk_capacity
-                                else 0.0,
+                                "cpu_load_percent": (float(cpu_load[0]) / cpu_count) * 100,
+                                "disk_percentage": disk_consumption * 100 / disk_capacity if disk_capacity else 0.0,
                                 "host_offline": False,
                             }
                         )
@@ -305,7 +313,6 @@ class ServerServer(models.Model):
         self.write({"state": "inactive"})
 
     def check_to_inactive(self):
-
         return True
 
     @api.model
@@ -313,6 +320,33 @@ class ServerServer(models.Model):
         if self.we_are_frozen():
             return os.path.dirname(sys.executable)
         return os.path.dirname(__file__)
+
+    def login_remote(self, context):
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            if self.use_master_key:
+                key_path = self.master_key_path or '/home/odoo/.ssh/secure_key'
+                try:
+                    private_key = paramiko.RSAKey.from_private_key_file(key_path)
+                    context['pkey'] = private_key
+                    context.pop('password', None)
+                except Exception as e:
+                    _logger.error("Error loading master key: %s", str(e))
+                    return None, f"Error cargando clave maestra: {str(e)}"
+
+            ssh.connect(
+                hostname=context.get('host'),
+                port=int(context.get('port', 22)),
+                username=context.get('user'),
+                password=context.get('passkey'),
+                pkey=context.get('pkey'),
+                timeout=10
+            )
+            return ssh, None
+        except Exception as e:
+            return None, str(e)
 
     def custom_sudo(self, command):
         if not self.is_remote:
@@ -330,20 +364,27 @@ class ServerServer(models.Model):
                 context = {
                     "host": self.main_hostname,
                     "port": self.ssh_port,
-                    "sshkey": self.ssh_private_key,
                     "user": self.user_name,
                     "name": self.name,
-                    "passkey": self.ssh_password,
                 }
+
+                if self.use_master_key:
+                    context['pkey'] = paramiko.RSAKey.from_private_key_file(
+                        self.master_key_path or '/home/odoo/.ssh/secure_key'
+                    )
+                else:
+                    context.update({
+                        "sshkey": self.ssh_private_key,
+                        "passkey": self.ssh_password,
+                    })
+
                 ssh_obj, error = self.login_remote(context)
                 if error:
                     self.actualizar_log(str(error))
                     _logger.exception("%s" % error)
                     return False
 
-                ssh_stdin, ssh_stdout, ssh_stderr = ssh_obj.exec_command(
-                    "sudo " + command
-                )
+                ssh_stdin, ssh_stdout, ssh_stderr = ssh_obj.exec_command("sudo " + command)
                 result = ssh_stdout.readlines()
                 self.actualizar_log(str(result))
                 return True
@@ -386,18 +427,112 @@ class ServerServer(models.Model):
             context = {
                 "host": self.main_hostname,
                 "port": self.ssh_port,
-                "sshkey": self.ssh_private_key,
                 "user": self.user_name,
-                "name": self.name,
-                "passkey": self.ssh_password,
             }
+
+            if self.use_master_key:
+                context['pkey'] = paramiko.RSAKey.from_private_key_file(
+                    self.master_key_path or '/home/odoo/.ssh/secure_key'
+                )
+            else:
+                context.update({
+                    "sshkey": self.ssh_private_key,
+                    "passkey": self.ssh_password,
+                })
+
             ssh_obj, error = self.login_remote(context)
+            if error:
+                raise UserError(f"Error de conexión: {error}")
+
             sftp = ssh_obj.open_sftp()
             with sftp.file(remote_path, 'w') as remote_file:
                 remote_file.write(content)
             sftp.close()
         except Exception as e:
             raise UserError("Error creating remote file: %s" % e)
+
+    def install_master_key(self):
+        """Instala la clave pública maestra en el servidor remoto"""
+        self.ensure_one()
+        if not self.use_master_key:
+            raise UserError("La opción 'Usar clave maestra' no está activada")
+
+        try:
+            # Obtener clave pública
+            pub_key_path = (self.master_key_path or '/home/odoo/.ssh/secure_key') + '.pub'
+            with open(pub_key_path, 'r') as f:
+                pub_key = f.read().strip()
+
+            # Conexión temporal con password
+            context = {
+                'host': self.main_hostname,
+                'port': self.ssh_port,
+                'user': self.user_name,
+                'password': self.ssh_password
+            }
+            ssh, error = self.login_remote(context)
+            if error:
+                raise UserError(f"Error de conexión: {error}")
+
+            # Comando para instalar la clave
+            command = f"""
+            mkdir -p ~/.ssh
+            grep -q -F '{pub_key}' ~/.ssh/authorized_keys || echo '{pub_key}' >> ~/.ssh/authorized_keys
+            chmod 700 ~/.ssh
+            chmod 600 ~/.ssh/authorized_keys
+            """
+
+            stdin, stdout, stderr = ssh.exec_command(command)
+            errors = stderr.read().decode()
+            ssh.close()
+
+            if errors:
+                raise UserError(f"Error instalando clave: {errors}")
+
+            self.write({'master_key_installed': True})
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Clave SSH instalada',
+                    'message': 'Clave pública maestra instalada correctamente en el servidor destino',
+                    'type': 'success',
+                    'sticky': False,
+                }
+            }
+        except Exception as e:
+            raise UserError(f"Error: {str(e)}")
+
+    def action_test_master_key(self):
+        """Prueba la conexión usando solo la clave maestra"""
+        self.ensure_one()
+        if not self.use_master_key:
+            raise UserError("La opción 'Usar clave maestra' no está activada")
+
+        context = {
+            'host': self.main_hostname,
+            'port': self.ssh_port,
+            'user': self.user_name
+        }
+
+        ssh, error = self.login_remote(context)
+        if ssh:
+            ssh.close()
+            message = _("Conexión con clave maestra exitosa!")
+            self.state = 'active'
+        else:
+            message = _("Error en conexión con clave maestra: %s") % error
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Prueba de conexión',
+                'message': message,
+                'type': 'success' if not error else 'warning',
+                'sticky': False,
+            }
+        }
 
     def connect_to_webssh(self):
         # ejecutar comando para iniciarl el servicio wssh --fbidhttp=False
@@ -412,9 +547,14 @@ class ServerServer(models.Model):
         )
         private_keyfile = os.path.join(path, self.name)
         private_key = False
-        with open(private_keyfile, 'rb') as file:
-            private_key = file.read()
 
+        if self.use_master_key:
+            key_path = self.master_key_path or '/home/odoo/.ssh/secure_key'
+            with open(key_path, 'rb') as file:
+                private_key = file.read()
+        else:
+            with open(private_keyfile, 'rb') as file:
+                private_key = file.read()
         # Obtén los datos de conexión desde el registro actual de server.server
         webssh_url = self.env["ir.config_parameter"].get_param(
             "se_server_management.webssh_url"
@@ -424,16 +564,52 @@ class ServerServer(models.Model):
             'hostname': self.main_hostname,
             'port': str(self.ssh_port),
             'username': self.user_name,
-            'password': self.ssh_password,
-            'allow_agent': False,  # Add this line to disable using SSH agent
+            'password': self.ssh_password if not self.use_master_key else '',
+            'allow_agent': False,
         }
         # Comprueba si se proporciona una clave privada y, en caso afirmativo, agrégala a los datos de conexión.
         for key, value in connection_data.items():
             webssh_url += f"{key}={value}&"
 
-        # Redirige al usuario a la URL de WebSSH.
         return {
             'type': 'ir.actions.act_url',
             'url': webssh_url,
-            'target': 'self',  # Abre la URL en la misma ventana.
+            # Abre la URL en la misma ventana.
+            'target': 'self',
         }
+
+    def action_configure_master_key(self):
+        """Abre wizard para configurar la clave maestra"""
+        return {
+            'name': 'Configurar Clave Maestra SSH',
+            'type': 'ir.actions.act_window',
+            'res_model': 'server.master.key.config',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_master_key_path': self.master_key_path or '/home/odoo/.ssh/secure_key',
+                'default_server_id': self.id
+            }
+        }
+
+    def update_master_key_path(self, new_path):
+        """Actualiza la ruta de la clave maestra y verifica su existencia"""
+        self.ensure_one()
+        try:
+            if not os.path.exists(new_path):
+                raise UserError(_("El archivo no existe en la ruta especificada"))
+
+            try:
+                paramiko.RSAKey.from_private_key_file(new_path)
+            except Exception as e:
+                raise UserError(_("El archivo no es una clave privada SSH válida: %s") % str(e))
+
+            self.write({
+                'master_key_path': new_path,
+                'master_key_installed': False
+            })
+            return True
+        except Exception as e:
+            raise UserError(_("Error actualizando clave maestra: %s") % str(e))
+
+}

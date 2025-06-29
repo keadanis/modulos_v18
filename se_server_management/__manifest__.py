@@ -33,6 +33,7 @@ To configure the ssh key, you can choose username or password or upload the key 
         "wizard/se_ssh_auth_view.xml",
         "data/ir_parameters.xml",
         "data/data.xml",
+        "views/master_key_config_views.xml",
         # 'data/server_configuration_command.csv',
     ],
     "installable": True,
