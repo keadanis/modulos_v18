@@ -30,7 +30,7 @@ class ServerServer(models.Model):
     sequence = fields.Integer("Sequence", default=10)
     name = fields.Char(string="Name", required=True)
     ip_address = fields.Char(string="IP Address", readonly=True)
-    ssh_port = fields.Integer(
+    ssh_port = fields.Char(
         string="SSH Port",
         required=True,
         help="Port used for ssh connection to the server",
